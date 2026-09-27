@@ -1,0 +1,16 @@
+# environments and downloaded wheels
+.venv/
+.wheels/
+__pycache__/
+*.pyc
+
+# third-party repo (cloned separately: facebookresearch/vggt-omega)
+vggt-omega/
+
+# data, outputs and per-site projects (large, regenerable)
+data/
+out/
+projects/
+
+# secrets
+.env

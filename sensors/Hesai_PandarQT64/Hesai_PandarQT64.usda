@@ -1,0 +1,95 @@
+#usda 1.0
+(
+    defaultPrim = "PandarQT64"
+    doc = "RTX LiDAR profile for the Hesai PandarQT 64-channel, 10 Hz mechanical LiDAR. Channel angles come from the per-unit factory calibration, read off the physical sensor with PandarView 2; they differ from the generic design table in Appendix I of the manual by up to ~1.6 deg in azimuth, so this profile is tied to this specific unit. Firing offsets, ranges and optical specifications are taken from the PandarQT user manual, doc version Q01-en-241210."
+)
+
+def OmniLidar "PandarQT64" (
+    prepend apiSchemas = ["OmniSensorGenericLidarCoreAPI"]
+)
+{
+    # Full 360-degree scan accumulated once per 10 Hz revolution.
+    bool omni:sensor:Core:accumulateOutputs = 1
+    # Emit the Coordinates AOV as x/y/z metres. The schema default is
+    # SPHERICAL, which emits azimuth/elevation in RADIANS plus range in metres
+    # in the same 3xN buffer -- consumed as if it were xyz that collapses the
+    # cloud into a flat sheet, since two axes are then bounded to +/-pi.
+    token omni:sensor:Core:elementsCoordsType = "CARTESIAN"
+    uint omni:sensor:Core:scanRateBaseHz = 10
+    float omni:sensor:tickRate = 10
+
+    # 0.6 degrees horizontal resolution: 600 ticks per revolution at 10 Hz.
+    # Cross-check against the manual: 64 channels x 600 ticks x 10 Hz =
+    # 384,000 points/s, exactly the single-return figure in section 1.4.
+    #
+    # There is deliberately no reportRateBaseHz here. That attribute was
+    # renamed to patternFiringRateHz; it does not exist in the installed
+    # omni_sensors schema and appears in none of the RTX sensor binaries, so
+    # setting it has no effect. NVIDIA's own published Hesai_XT32_SD10.usda
+    # still carries it, but that file was generated against an older schema.
+    uint omni:sensor:Core:patternFiringRateHz = 6000
+    token omni:sensor:Core:scanType = "ROTARY"
+    # Manual section 1.2: clockwise in the top view is the factory default.
+    token omni:sensor:Core:rotationDirection = "CW"
+    uint omni:sensor:Core:numberOfChannels = 64
+    uint omni:sensor:Core:numberOfEmitters = 64
+    # The QT64 also supports Dual Return (last & first), per section 1.4.
+    # This profile deliberately models Single Return operation.
+    uint omni:sensor:Core:maxReturns = 1
+
+    # PandarQT instrument specifications. Intensity is deliberately idealized;
+    # this profile is intended for geometry-only point-cloud generation.
+    float omni:sensor:Core:nearRangeM = 0.1
+    # Start rays outside the 80.2 mm x 76 mm sensor enclosure so its CAD
+    # visual remains visible without producing self-returns.  This is below
+    # the 0.1 m minimum valid measurement range.
+    float omni:sensor:Core:rangeOffsetM = 0.09
+    float omni:sensor:Core:farRangeM = 60
+    float omni:sensor:Core:rangeAccuracyM = 0.03
+    float omni:sensor:Core:rangeResolutionM = 0.004
+    float omni:sensor:Core:waveLengthNm = 885
+    token omni:sensor:Core:rayType = "IDEALIZED"
+    token omni:sensor:Core:intensityMappingType = "LINEAR"
+    token omni:sensor:Core:intensityProcessing = "NORMALIZATION"
+    # Point-drop sensitivity. Manual section 1.4: "Range Capability 20 m (at
+    # 10% reflectivity)", so minReflectance 0.1 pairs with a 20 m range. The
+    # schema default for minReflectionRangeM is 200 m, which on a 60 m sensor
+    # means low-reflectance targets never drop out at any distance.
+    # Manual footnote 1: the 20 m figure is specified for the middle 48
+    # channels (9-56) at 100 klux ambient illuminance, PoD > 90%.
+    float omni:sensor:Core:minReflectance = 0.1
+    float omni:sensor:Core:minReflectionRangeM = 20
+    bool omni:sensor:Core:skipDroppingInvalidPoints = 0
+    # Mechanical angular noise. The user manual publishes no angular accuracy
+    # figure; 0.005 is both the Isaac Sim schema default and the value in
+    # NVIDIA's Hesai_QT64.json. Set to 0 for a fully deterministic baseline.
+    float omni:sensor:Core:azimuthErrorStd = 0.005
+    float omni:sensor:Core:elevationErrorStd = 0
+
+    # Per-channel angles from this unit's factory calibration, read off the
+    # sensor with PandarView 2. All 128 values were checked against it. These are NOT the generic
+    # design values in manual Appendix I -- the azimuth offsets in particular
+    # differ by up to ~1.6 deg -- so this profile is specific to this unit.
+    # Channel 1 is the bottom beam (-52.288 deg), channel 64 the top
+    # (+52.065 deg), spanning 104.35 deg against the manual's nominal 104.2.
+    # Retain this exact channel order when consuming downstream output.
+    #
+    # horOffsetM / vertOffsetM are deliberately left unset. Manual Figure 1.6
+    # places the entrance pupil 29.80 mm off the rotation axis, but the manual
+    # reconstructs points purely from distance + elevation + azimuth about the
+    # origin (section 3.1.3, "All measurements are relative to the origin" in
+    # section 1.2). NVIDIA's published Hesai_XT32_SD10.usda likewise ships
+    # these arrays as explicit zeros. Applying the offset here would disagree
+    # with the real hardware's own point reconstruction.
+    uint[] omni:sensor:Core:emitterState:s001:channelId = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+    float[] omni:sensor:Core:emitterState:s001:elevationDeg = [-52.288, -49.921, -47.741, -45.656, -43.654, -41.71, -39.828, -38.013, -36.212, -34.461, -32.756, -31.073, -29.418, -27.808, -26.211, -24.63, -23.096, -21.538, -20.005, -18.499, -16.98, -15.486, -13.983, -12.501, -11.016, -9.547, -8.079, -6.611, -5.156, -3.696, -2.242, -0.787, 0.681, 2.137, 3.579, 5.042, 6.507, 7.972, 9.433, 10.903, 12.386, 13.865, 15.348, 16.856, 18.355, 19.891, 21.42, 22.963, 24.527, 26.104, 27.707, 29.323, 30.973, 32.646, 34.347, 36.083, 37.862, 39.677, 41.567, 43.508, 45.511, 47.557, 49.715, 52.065]
+    float[] omni:sensor:Core:emitterState:s001:azimuthDeg = [8.941, 8.549, 8.212, 7.978, 7.706, 7.529, 7.344, 7.191, 7.057, 6.928, 6.815, 6.722, 6.642, 6.558, 6.485, 6.42, -4.867, -4.813, -4.755, -4.704, -4.655, -4.614, -4.573, -4.555, -4.518, -4.492, -4.473, -4.465, -4.446, -4.433, -4.43, -4.416, 6.002, 6.009, 6.015, 6.006, 6.015, 6.024, 6.065, 6.08, 6.103, 6.126, 6.163, 6.197, 6.239, 6.277, 6.318, 6.372, -4.916, -4.993, -5.083, -5.166, -5.273, -5.386, -5.514, -5.654, -5.809, -5.987, -6.171, -6.391, -6.655, -6.939, -7.328, -7.764]
+    # Firing offsets from manual Appendix II, converted from us to ns; all 64
+    # values verified against the table. These come from the manual rather
+    # than NVIDIA's Hesai_QT64.json, which has a typo at channel 57 (22050
+    # instead of 122050).
+    uint[] omni:sensor:Core:emitterState:s001:fireTimeNs = [2310, 4370, 6430, 8490, 10540, 12600, 14660, 16710, 19160, 21220, 23280, 25340, 27390, 29450, 31500, 33560, 36610, 38670, 40730, 42780, 44840, 46900, 48950, 51010, 53450, 55520, 57580, 59630, 61690, 63740, 65800, 67860, 70900, 72970, 75020, 77080, 79140, 81190, 83250, 85300, 87750, 89820, 91870, 93930, 95980, 98040, 100100, 102150, 105200, 107260, 109320, 111380, 113430, 115490, 117540, 119600, 122050, 124110, 126170, 128220, 130280, 132340, 134390, 136450]
+
+    string omni:sensor:modelName = "PandarQT64"
+    string omni:sensor:modelVendor = "Hesai"
+}

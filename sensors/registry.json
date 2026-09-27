@@ -1,0 +1,14 @@
+{
+  "sensors": [
+    {
+      "name": "Hesai PandarQT64",
+      "aliases": ["QT64", "PandarQT64", "Pandar QT64", "Hesai QT64", "PandarQT 64"],
+      "usd_path": "sensors/Hesai_PandarQT64/Hesai_PandarQT64.usda",
+      "source": "channel angles from the unit's factory calibration; firing times and ranges from the Hesai PandarQT user manual Q01-en-241210",
+      "channels": 64,
+      "vfov_deg": [-52.3, 52.1],
+      "rate_hz": 10,
+      "range_m": [0.1, 60]
+    }
+  ]
+}
